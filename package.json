@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.3.3",
+    "@clerk/nextjs": "^5.2.14",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-avatar": "^1.1.0",
     "@radix-ui/react-dialog": "^1.1.1",
@@ -21,6 +23,7 @@
     "@radix-ui/react-tooltip": "^1.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "convex": "^1.13.2",
     "lucide-react": "^0.424.0",
     "next": "14.2.5",
     "next-themes": "^0.3.0",
@@ -29,8 +32,10 @@
     "react-hook-form": "^7.52.2",
     "react-resizable-panels": "^2.0.22",
     "sonner": "^1.5.0",
+    "svix": "^1.28.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "tsc": "^2.0.4",
     "zod": "^3.23.8",
     "zustand": "^4.5.4"
   },
