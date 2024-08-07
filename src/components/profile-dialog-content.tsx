@@ -29,6 +29,12 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { UserButton, useUser } from "@clerk/clerk-react";
+import { useMutationHandler } from "@/hooks/use-mutation-handler";
+import { toast } from "sonner";
+import { ConvexError } from "convex/values";
 
 const statuses = [
   "👋 Speak Freely",
@@ -46,6 +52,13 @@ export const ProfileDialogContent = () => {
   const { setTheme } = useTheme();
   const [updateStatusDialog, setUpdateStatusDialog] = useState(false);
   const [status, setStatus] = useState("");
+  const { user } = useUser();
+
+  const userDetails = useQuery(api.status.get, { clerkId: user?.id! });
+  const { mutate: updateStatus, state: updateStatusState } = useMutationHandler(
+    api.status.update
+  );
+
   const form = useForm<z.infer<typeof addFriendFormSchema>>({
     resolver: zodResolver(addFriendFormSchema),
     defaultValues: {
@@ -56,33 +69,60 @@ export const ProfileDialogContent = () => {
     console.log(email);
   };
 
+  const updateStatusHandler = async () => {
+    try {
+      await updateStatus({ clerkId: user?.id!, status });
+      toast.success("Status updated successfully");
+      setStatus("");
+      setUpdateStatusDialog(false);
+    } catch (error) {
+      toast.error(
+        error instanceof ConvexError ? error.data : "An error occurred"
+      );
+      console.log("Error updating status", error);
+    }
+  };
+
   return (
     <div>
       <Card className="border-0 flex flex-col space-y-4">
         <CardTitle>Profile</CardTitle>
         <div>
           <Avatar className="h-20 w-20 mx-auto">
-            <AvatarImage src="https://github.com/shadcn.png" alt="avatar" />
-            <AvatarFallback>User</AvatarFallback>
+            <AvatarImage src={userDetails?.imageUrl} alt="avatar" />
+            <AvatarFallback>{userDetails?.username[0]}</AvatarFallback>
           </Avatar>
         </div>
       </Card>
+
       <div className="flex flex-col gap-y-6">
         <div className="flex items-center space-x-2 mt-4">
           <UserRound />
           <Input
             disabled
             placeholder="Name"
-            value={"USER NAME"}
+            value={userDetails?.username}
             className="border-none outline-none ring-0"
           />
         </div>
+
         <Separator />
+
         <div className="flex items-center justify-center space-x-5">
           <p>Manage your Account</p>
-          <button>USER BUTTON</button>
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonPopoverCard: {
+                  pointerEvents: "initial",
+                },
+              },
+            }}
+          />
         </div>
+
         <Separator />
+
         <Dialog>
           <DialogTrigger>
             <div className="flex items-center space-x-2">
@@ -123,7 +163,9 @@ export const ProfileDialogContent = () => {
             </Form>
           </DialogContent>
         </Dialog>
+
         <Separator />
+
         <Dialog>
           <DialogTrigger>
             <div className="flex items-center space-x-2">
@@ -137,7 +179,9 @@ export const ProfileDialogContent = () => {
             </p>
           </DialogContent>
         </Dialog>
+
         <Separator />
+
         <Dialog
           open={updateStatusDialog}
           onOpenChange={() => setUpdateStatusDialog(!updateStatusDialog)}
@@ -145,15 +189,16 @@ export const ProfileDialogContent = () => {
           <DialogTrigger>
             <div className="flex items-center space-x-2">
               <Pencil />
-              <p>{"Display Current Status"}</p>
+              <p>{userDetails?.status}</p>
             </div>
           </DialogTrigger>
           <DialogContent>
             <Textarea
-              placeholder="Current status"
-              className="resize-none h-48"
+              placeholder={userDetails?.status}
+              className="resize-none h-20"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
+              disabled={updateStatusState === "loading"}
             />
             <div>
               {statuses.map((status) => (
@@ -167,15 +212,18 @@ export const ProfileDialogContent = () => {
               ))}
             </div>
             <Button
-              disabled={true}
               type="button"
+              onClick={updateStatusHandler}
+              disabled={updateStatusState === "loading"}
               className="ml-auto w-fit bg-primary-main"
             >
               Update Status
             </Button>
           </DialogContent>
         </Dialog>
+
         <Separator />
+
         <ToggleGroup type="single" variant="outline" className="space-x-4">
           <ToggleGroupItem
             value="light"
