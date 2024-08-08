@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Handshake,
   Laptop,
+  Loader2,
   Moon,
   Pencil,
   Sun,
@@ -35,6 +36,9 @@ import { UserButton, useUser } from "@clerk/clerk-react";
 import { useMutationHandler } from "@/hooks/use-mutation-handler";
 import { toast } from "sonner";
 import { ConvexError } from "convex/values";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { FriendRequestCard } from "./friend-request-card";
 
 const statuses = [
   "👋 Speak Freely",
@@ -52,7 +56,11 @@ export const ProfileDialogContent = () => {
   const { setTheme } = useTheme();
   const [updateStatusDialog, setUpdateStatusDialog] = useState(false);
   const [status, setStatus] = useState("");
+  const [friendRequestModal, setFriendRequestModal] = useState(false);
   const { user } = useUser();
+  const { mutate: createFriendRequest, state: createFriendRequestState } =
+    useMutationHandler(api.friend_request.create);
+  const friendRequests = useQuery(api.friend_requests.get);
 
   const userDetails = useQuery(api.status.get, { clerkId: user?.id! });
   const { mutate: updateStatus, state: updateStatusState } = useMutationHandler(
@@ -65,8 +73,20 @@ export const ProfileDialogContent = () => {
       email: "",
     },
   });
-  const onSubmit = async ({ email }: z.infer<typeof addFriendFormSchema>) => {
-    console.log(email);
+  const friendRequestHandler = async ({
+    email,
+  }: z.infer<typeof addFriendFormSchema>) => {
+    try {
+      await createFriendRequest({ email });
+      form.reset();
+      toast.success("Friend request sent successfully");
+      setFriendRequestModal(false);
+    } catch (error) {
+      toast.error(
+        error instanceof ConvexError ? error.data : "An error occurred"
+      );
+      console.log("Error sending friend request: ", error);
+    }
   };
 
   const updateStatusHandler = async () => {
@@ -123,7 +143,10 @@ export const ProfileDialogContent = () => {
 
         <Separator />
 
-        <Dialog>
+        <Dialog
+          open={friendRequestModal}
+          onOpenChange={() => setFriendRequestModal(!friendRequestModal)}
+        >
           <DialogTrigger>
             <div className="flex items-center space-x-2">
               <UserRoundSearch />
@@ -133,7 +156,7 @@ export const ProfileDialogContent = () => {
           <DialogContent>
             <Form {...form}>
               <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={form.handleSubmit(friendRequestHandler)}
                 className="space-y-8"
               >
                 <FormField
@@ -145,7 +168,7 @@ export const ProfileDialogContent = () => {
                       <FormControl>
                         <Input
                           {...field}
-                          disabled={true}
+                          disabled={createFriendRequestState === "loading"}
                           placeholder="friend@email.com"
                         />
                       </FormControl>
@@ -156,7 +179,10 @@ export const ProfileDialogContent = () => {
                     </FormItem>
                   )}
                 />
-                <Button disabled={true} type="submit">
+                <Button
+                  disabled={createFriendRequestState === "loading"}
+                  type="submit"
+                >
                   Submit
                 </Button>
               </form>
@@ -171,12 +197,33 @@ export const ProfileDialogContent = () => {
             <div className="flex items-center space-x-2">
               <Handshake />
               <p>View Friend Requests</p>
+              {friendRequests && friendRequests.length > 0 && (
+                <Badge variant="outline">{friendRequests.length}</Badge>
+              )}
             </div>
           </DialogTrigger>
           <DialogContent>
-            <p className="text-xl text-center font-bold">
-              No friend requests yet
-            </p>
+            {friendRequests ? (
+              friendRequests.length === 0 ? (
+                <p className="text-xl text-center font-bold">
+                  No friend requests yet
+                </p>
+              ) : (
+                <ScrollArea className=" h-[400px] rounded-md">
+                  {friendRequests.map((request) => (
+                    <FriendRequestCard
+                      key={request.sender._id}
+                      email={request.sender.email}
+                      id={request._id}
+                      imageUrl={request.sender.imageUrl}
+                      username={request.sender.username}
+                    />
+                  ))}
+                </ScrollArea>
+              )
+            ) : (
+              <Loader2 />
+            )}
           </DialogContent>
         </Dialog>
 
@@ -215,7 +262,7 @@ export const ProfileDialogContent = () => {
               type="button"
               onClick={updateStatusHandler}
               disabled={updateStatusState === "loading"}
-              className="ml-auto w-fit bg-primary-main"
+              className="ml-auto w-fit"
             >
               Update Status
             </Button>
