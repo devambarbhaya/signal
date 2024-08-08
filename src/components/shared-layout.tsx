@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { FC, ReactNode, useEffect, useState } from "react";
 import {
   ResizableHandle,
@@ -20,7 +19,6 @@ const SharedLayout: FC<SharedLayoutProps> = ({
   SidebarComponent,
   SidebarProps,
 }) => {
-  const pathname = usePathname();
   const [isRendered, setIsRendered] = useState(false);
   const { sidebarWidth, setSidebarWidth } = useSidebarWidth();
 

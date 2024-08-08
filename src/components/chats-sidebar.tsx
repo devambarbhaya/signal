@@ -1,3 +1,9 @@
+import { SidebarContainer } from "./sidebar-container";
+
 export const ChatsSidebar = () => {
-  return <div>ChatsSidebar</div>;
+  return (
+    <SidebarContainer title="Chats" trigger={<></>}>
+      <div>Chat Sidebar</div>
+    </SidebarContainer>
+  );
 };
